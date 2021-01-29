@@ -5,7 +5,10 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
 import javax.security.auth.login.LoginException;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Scanner;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -18,11 +21,24 @@ public class Main extends ListenerAdapter {
     //public static ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor();
 
     public static void main(String[] args) throws LoginException {
-        String token = "insert token here";
-        JDABuilder builder = JDABuilder.createDefault(token);
-        builder.addEventListeners(new Main());
-        builder.build();
-        System.out.println("Ready to HYDRATE!");
+        File file = new File("src/main/java/token.txt");
+        String token;
+        try {
+            Scanner fileReader = new Scanner(file);
+            if (!fileReader.hasNextLine()) {
+                System.err.println("No token entered. " +
+                        "\nPlease enter the bot's token file in token.txt file");
+            } else {
+                token = fileReader.nextLine();
+                JDABuilder builder = JDABuilder.createDefault(token);
+                builder.addEventListeners(new Main());
+                builder.build();
+                System.out.println("Ready to HYDRATE!");
+            }
+        } catch (FileNotFoundException e) {
+            System.out.println("No \"token.txt\" exists in the java folder in this project");
+        }
+
     }
 
     @Override
