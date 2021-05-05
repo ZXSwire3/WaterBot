@@ -7,6 +7,6 @@ Very basic bot for Discord that reminds you to drink water
 
 # Progress
 - [x] Working Bot
-- [ ] Allow changing of time interval
-- [ ] Allow user to stop the reminders
+- [x] Allow changing of time interval
+- [x] Allow user to stop the reminders
 - [ ] Allow bot to be stopped but still remember the reminders that people wanted
