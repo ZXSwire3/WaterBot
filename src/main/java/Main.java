@@ -5,40 +5,33 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
 import javax.security.auth.login.LoginException;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.util.ArrayList;
+import java.io.InputStream;
 import java.util.Scanner;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class Main extends ListenerAdapter {
 
-    //public static ArrayList<String> dehydratedPeople = new ArrayList<>();\
-    public static String[] dehydratedPeople = new String[10];
     public static char call = '~';
-    //public static ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor();
+    private final ConcurrentHashMap<String, Integer> peopleTime = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     public static void main(String[] args) throws LoginException {
-        File file = new File("src/main/java/token.txt");
+        InputStream file = Main.class.getResourceAsStream("token.txt");
         String token;
-        try {
-            Scanner fileReader = new Scanner(file);
-            if (!fileReader.hasNextLine()) {
-                System.err.println("No token entered. " +
-                        "\nPlease enter the bot's token file in token.txt file");
-            } else {
-                token = fileReader.nextLine();
-                JDABuilder builder = JDABuilder.createDefault(token);
-                builder.addEventListeners(new Main());
-                builder.build();
-                System.out.println("Ready to HYDRATE!");
-            }
-        } catch (FileNotFoundException e) {
-            System.out.println("No \"token.txt\" exists in the java folder in this project");
+        Scanner fileReader = new Scanner(file);
+        if (!fileReader.hasNextLine()) {
+            System.err.println("No token entered. " +
+                    "\nPlease enter the bot's token file in token.txt file");
+        } else {
+            token = fileReader.nextLine();
+            JDABuilder builder = JDABuilder.createDefault(token);
+            builder.addEventListeners(new Main());
+            builder.build();
+            System.out.println("Ready to HYDRATE!");
         }
-
     }
 
     @Override
@@ -52,7 +45,7 @@ public class Main extends ListenerAdapter {
                 event.getMessage().getContentDisplay());
 
         if (msg.getContentRaw().contains(call + "")) {
-            if (msg.getContentRaw().equalsIgnoreCase(call + "hydrate")) {
+            if (msg.getContentRaw().equalsIgnoreCase(call + "hydrate")|| msg.getContentRaw().equalsIgnoreCase(call + "h")) {
                 hydrate(channel, author, msg);
             } else if (msg.getContentRaw().equalsIgnoreCase(call + "hTime")) {
                 channel.sendMessage("invalid choice, must be input as \"~htime time\"\n" +
@@ -67,8 +60,19 @@ public class Main extends ListenerAdapter {
                 //String units = input[2];
                 hydrateTime(channel, author, msg, time);
 
-            } else if (msg.getContentRaw().contains("stop")) {
-                stop();
+            } else if (msg.getContentRaw().equalsIgnoreCase(call + "stop")) {
+                peopleTime.remove(author);
+                channel.sendMessage(author + "will no longer be reminded to drink water").queue();
+            } else if (msg.getContentRaw().equalsIgnoreCase(call + "help")) {
+                channel.sendMessage(">>> Welcome to **__hydration bot!!!__**\n" +
+                        "The following are all valid commands: \n" +
+                        "**~hydrate** or **~h**: Reminds you to drink some water every 30 min\n" +
+                        "**~htime (time)**: Reminds you to drink some water at a given interval in minutes\n" +
+                        "**~help**: HEY! that's this command :D").queue();
+            } else if (msg.getContentRaw().startsWith(String.valueOf(call))) {
+                channel.sendMessage(">>> Command unrecognized\n" +
+                                         "Type **__~help**__ for commands").queue();
+
             }
         }
 
@@ -79,45 +83,31 @@ public class Main extends ListenerAdapter {
     }
 
     public void hydrateTime(MessageChannel channel, String author, Message msg, int time) {
-//        for (int i = 0; i < dehydratedPeople.length; i++) {
-//            if (author.equalsIgnoreCase(dehydratedPeople[i])) {
-//                channel.sendMessage("Already reminding " + author).queue();
-//            } else if (dehydratedPeople[i] == null){
-//                dehydratedPeople[i] = author;
-//
-//            }
-//        }
-        boolean exists = false;
-        int temp = 0;
-        for (int i = 0; i < dehydratedPeople.length; i++) {
-            exists = author.equalsIgnoreCase(dehydratedPeople[i]);
-            if (exists) {
-                temp = i;
+        if (peopleTime.putIfAbsent(author, time) == null) {
+            HydrationTask test = new HydrationTask(channel, author, executor, peopleTime);
+
+            if (time == 1) {
+                channel.sendMessage("Reminding " + author + " to stay hydrated every minute").queue();
+                executor.schedule(test, time, TimeUnit.MINUTES);
+            } else if (time > 1) {
+                channel.sendMessage("Reminding " + author + " to stay hydrated every " + time + " minutes").queue();
+                executor.schedule(test, time, TimeUnit.MINUTES);
             } else {
-                dehydratedPeople[i] = author;
+                channel.sendMessage("Invalid time, time must be 1 or greater").queue();
+            }
+
+        } else {
+
+            if (time == 1) {
+                channel.sendMessage("Rescheduling to remind " + author + " to stay hydrated every minute").queue();
+                peopleTime.replace(author, time);
+            } else if (time > 1) {
+                channel.sendMessage("Rescheduling to remind " + author + " to stay hydrated every " + time + " minutes").queue();
+                peopleTime.replace(author, time);
+            } else {
+                channel.sendMessage("Invalid time, time must be 1 or greater").queue();
             }
         }
-        System.out.println(dehydratedPeople[temp] + exists);
 
-        ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor();
-        if (exists) {
-            ses.shutdownNow();
-            ses = Executors.newSingleThreadScheduledExecutor();
-        }
-
-        if (time == 1) {
-            channel.sendMessage("Reminding " + author + " to stay hydrated every minute").queue();
-        } else if (time > 1) {
-            channel.sendMessage("Reminding " + author + " to stay hydrated every " + time + " minutes").queue();
-        } else {
-            channel.sendMessage("Invalid time, time must be 1 or greater").queue();
-        }
-
-
-        ses.scheduleAtFixedRate(() -> channel.sendMessage(author + " Drink some water").queue(), time, time, TimeUnit.MINUTES);
-    }
-
-    public void stop() {
-       // ses.shutdown();
     }
 }
