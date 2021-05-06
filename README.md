@@ -10,3 +10,5 @@ Very basic bot for Discord that reminds you to drink water
 - [x] Allow changing of time interval
 - [x] Allow user to stop the reminders
 - [ ] Allow bot to be stopped but still remember the reminders that people wanted
+- [ ] Randomized pharses getting you to drink more water
+- [ ] Make the bot only be able to see the channel that it is configured to be in
