@@ -13,3 +13,4 @@ Very basic bot for Discord that reminds you to drink water
 - [ ] Randomized pharses getting you to drink more water
 - [ ] Make the bot only be able to see the channel that it is configured to be in
 - [ ] Make the bot automatically stop reminding people when their status is away or offline
+- [ ] Reaction that tracks how many times the user has actually had water
